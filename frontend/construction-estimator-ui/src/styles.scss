@@ -1,0 +1,45 @@
+@use '@angular/material' as mat;
+
+html {
+  color-scheme: light dark;
+  @include mat.theme((
+    color: (primary: mat.$azure-palette, tertiary: mat.$orange-palette),
+    typography: (
+      plain-family: (Roboto, 'Segoe UI', system-ui, -apple-system, sans-serif),
+      brand-family: (Roboto, 'Segoe UI', system-ui, -apple-system, sans-serif),
+    ),
+    density: 0,
+  ));
+}
+
+:root {
+  --surface: var(--mat-sys-surface);
+  --surface-2: var(--mat-sys-surface-container);
+  --border: var(--mat-sys-outline-variant);
+  --muted: var(--mat-sys-on-surface-variant);
+  --hover: var(--mat-sys-surface-container-high);
+  --accent: var(--mat-sys-primary);
+  --accent-soft: color-mix(in srgb, var(--mat-sys-primary) 14%, transparent);
+  --danger: var(--mat-sys-error);
+  --labour: light-dark(#8a4b00, #ffb870);
+  --status-draft: light-dark(#5f6368, #aab0b6);
+  --status-submitted: light-dark(#1a5fb4, #8ab4f8);
+  --status-approved: light-dark(#1e7a3c, #7dd99a);
+  --status-rejected: light-dark(#b3261e, #f2b8b5);
+}
+
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--mat-sys-surface-container-lowest); color: var(--mat-sys-on-surface); }
+
+.page { max-width: 1200px; margin: 0 auto; padding: 20px 16px; }
+.page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 16px; }
+.page-header h1 { margin: 0; font-size: 26px; }
+.muted { color: var(--muted); }
+.error-text { color: var(--danger); }
+.mono { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
+.num { text-align: right !important; }
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+p { line-height: 1.5; }
+
+.snack-success { --mat-snack-bar-button-color: var(--status-approved); }
+.snack-error { --mat-snack-bar-button-color: #ffb4ab; }

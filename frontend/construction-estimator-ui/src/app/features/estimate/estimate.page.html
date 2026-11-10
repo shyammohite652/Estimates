@@ -1,0 +1,158 @@
+<section class="page">
+  <a mat-button routerLink="/projects" class="back"><mat-icon>arrow_back</mat-icon> Projects</a>
+
+  @if (notFound()) {
+    <mat-card appearance="outlined" class="empty">
+      <h2>Estimate not found</h2>
+      <p class="muted">It does not exist, or it belongs to a project you are not assigned to.</p>
+    </mat-card>
+  } @else if (estimate(); as e) {
+    <mat-card appearance="outlined" class="header-card">
+      @if (busy()) { <mat-progress-bar mode="indeterminate" class="card-progress" /> }
+      <div class="header-top">
+        <div class="title-block">
+          <div class="eyebrow">{{ e.projectName }}</div>
+          <h1><span class="mono">{{ e.number }}</span> <app-status-chip [status]="e.status" /></h1>
+          <p class="description">
+            {{ e.description }}
+            @if (e.capabilities.canCorrectDescription) {
+              <button mat-icon-button (click)="correctDescription()" matTooltip="Correct description" aria-label="Correct description">
+                <mat-icon>edit_note</mat-icon>
+              </button>
+            }
+          </p>
+          <dl class="meta">
+            <div><dt>Pricing date</dt><dd>{{ e.pricingDate | date: 'd MMM y' }}</dd></div>
+            <div><dt>Created by</dt><dd>{{ e.createdByName }}</dd></div>
+            <div><dt>Last updated</dt><dd>{{ e.updatedAt | date: 'd MMM y, HH:mm' }}</dd></div>
+          </dl>
+        </div>
+
+        <div class="totals" aria-label="Estimate totals">
+          <div><span>Net</span><strong class="mono">{{ e.netTotal | number: '1.2-2' }}</strong></div>
+          <div><span>Markup</span><strong class="mono">{{ e.markupTotal | number: '1.2-2' }}</strong></div>
+          @if (e.labourTotal !== undefined) {
+            <div class="labour"><span>Labour cost</span><strong class="mono">{{ e.labourTotal | number: '1.2-2' }}</strong></div>
+          }
+          <div class="grand"><span>Estimate total</span><strong class="mono">{{ e.total | number: '1.2-2' }}</strong></div>
+        </div>
+      </div>
+
+      @if (hasActions()) {
+        <div class="actions">
+          @if (e.capabilities.canSubmit) {
+            <button mat-flat-button (click)="submit()" [disabled]="busy()"><mat-icon>send</mat-icon> Submit for review</button>
+          }
+          @if (e.capabilities.canApprove) {
+            <button mat-flat-button class="approve" (click)="approve()" [disabled]="busy()"><mat-icon>check_circle</mat-icon> Approve</button>
+          }
+          @if (e.capabilities.canReject) {
+            <button mat-stroked-button class="reject" (click)="reject()" [disabled]="busy()"><mat-icon>cancel</mat-icon> Reject</button>
+          }
+          @if (e.capabilities.canReopen) {
+            <button mat-stroked-button (click)="reopen()" [disabled]="busy()"><mat-icon>undo</mat-icon> Reopen as draft</button>
+          }
+        </div>
+      }
+      @if (e.status === 'Submitted' && e.capabilities.canReject && !e.capabilities.canApprove) {
+        <p class="notice"><mat-icon>info</mat-icon> You created this estimate, so you cannot approve it. Another reviewer must.</p>
+      }
+      @if (e.status === 'Approved') {
+        <p class="notice"><mat-icon>lock</mat-icon> Approved estimates are the commercial record and cannot be changed.</p>
+      }
+    </mat-card>
+
+    <mat-card appearance="outlined" class="lines-card">
+      <div class="lines-head">
+        <h2>Lines <span class="muted count">{{ totalLines() | number }}</span></h2>
+        @if (e.capabilities.canEditLines) {
+          <button mat-stroked-button (click)="addLine()"><mat-icon>add</mat-icon> Add line</button>
+        }
+      </div>
+      @if (loadingLines()) { <mat-progress-bar mode="indeterminate" /> }
+
+      <div class="table-scroll">
+        <table mat-table [dataSource]="lines()" class="lines">
+          <ng-container matColumnDef="code">
+            <th mat-header-cell *matHeaderCellDef>Code</th>
+            <td mat-cell *matCellDef="let l" class="mono">{{ l.itemCode }}</td>
+          </ng-container>
+          <ng-container matColumnDef="description">
+            <th mat-header-cell *matHeaderCellDef>Description</th>
+            <td mat-cell *matCellDef="let l" class="wrap">{{ l.itemDescription }}</td>
+          </ng-container>
+          <ng-container matColumnDef="unit">
+            <th mat-header-cell *matHeaderCellDef>Unit</th>
+            <td mat-cell *matCellDef="let l">{{ l.unit }}</td>
+          </ng-container>
+          <ng-container matColumnDef="quantity">
+            <th mat-header-cell *matHeaderCellDef class="num">Qty</th>
+            <td mat-cell *matCellDef="let l" class="num mono">{{ l.quantity | number: '1.0-3' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="rate">
+            <th mat-header-cell *matHeaderCellDef class="num">Rate</th>
+            <td mat-cell *matCellDef="let l" class="num mono" [matTooltip]="'Effective from ' + l.rateEffectiveFrom">{{ l.unitRate | number: '1.2-2' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="labourRate">
+            <th mat-header-cell *matHeaderCellDef class="num labour">Labour / unit</th>
+            <td mat-cell *matCellDef="let l" class="num mono labour">{{ l.unitLabourCost | number: '1.2-2' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="markup">
+            <th mat-header-cell *matHeaderCellDef class="num">Markup %</th>
+            <td mat-cell *matCellDef="let l" class="num mono">{{ l.markupPercent | number: '1.2-2' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="net">
+            <th mat-header-cell *matHeaderCellDef class="num">Net</th>
+            <td mat-cell *matCellDef="let l" class="num mono">{{ l.netAmount | number: '1.2-2' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="total">
+            <th mat-header-cell *matHeaderCellDef class="num">Line total</th>
+            <td mat-cell *matCellDef="let l" class="num mono strong">{{ l.lineTotal | number: '1.2-2' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="labourAmount">
+            <th mat-header-cell *matHeaderCellDef class="num labour">Labour</th>
+            <td mat-cell *matCellDef="let l" class="num mono labour">{{ l.labourAmount | number: '1.2-2' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef><span class="cdk-visually-hidden">Actions</span></th>
+            <td mat-cell *matCellDef="let l" class="row-actions">
+              <button mat-icon-button (click)="editLine(l)" matTooltip="Edit" [attr.aria-label]="'Edit ' + l.itemCode"><mat-icon>edit</mat-icon></button>
+              <button mat-icon-button (click)="removeLine(l)" matTooltip="Remove" [attr.aria-label]="'Remove ' + l.itemCode"><mat-icon>delete</mat-icon></button>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="columns(); sticky: true"></tr>
+          <tr mat-row *matRowDef="let row; columns: columns()"></tr>
+          <tr class="mat-row" *matNoDataRow>
+            <td class="mat-cell empty-row" [attr.colspan]="columns().length">
+              @if (loadingLines()) { Loading lines… }
+              @else { No lines yet. @if (e.capabilities.canEditLines) { Use “Add line” to price the first item. } }
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <mat-paginator [length]="totalLines()" [pageIndex]="pageIndex()" [pageSize]="pageSize()"
+                     [pageSizeOptions]="[50, 100, 250, 500]" (page)="onPage($event)" showFirstLastButtons
+                     aria-label="Select page of estimate lines" />
+    </mat-card>
+
+    <mat-expansion-panel class="history">
+      <mat-expansion-panel-header>
+        <mat-panel-title>History</mat-panel-title>
+        <mat-panel-description>{{ history().length }} entries</mat-panel-description>
+      </mat-expansion-panel-header>
+      <ol class="timeline">
+        @for (h of history(); track h.id) {
+          <li>
+            <strong>{{ historyLabel(h) }}</strong> by {{ h.userName }}
+            <span class="muted">· {{ h.occurredAt | date: 'd MMM y, HH:mm' }}</span>
+            @if (h.comment) { <div class="comment">{{ h.comment }}</div> }
+          </li>
+        }
+      </ol>
+    </mat-expansion-panel>
+  } @else if (loadingHeader()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+</section>

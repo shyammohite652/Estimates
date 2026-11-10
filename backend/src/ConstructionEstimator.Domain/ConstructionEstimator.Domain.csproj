@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The domain is pure C#: no package or framework references, by design (enforced by ArchitectureTests). -->
+</Project>

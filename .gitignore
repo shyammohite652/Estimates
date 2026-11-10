@@ -1,0 +1,12 @@
+bin/
+obj/
+*.user
+.vs/
+.vscode/
+node_modules/
+dist/
+.angular/
+*.log
+.env
+TestResults/
+*.bundle
